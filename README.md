@@ -72,6 +72,9 @@ No requirements.
 
 ## Outputs
 
-No outputs.
+| Name | Description |
+|------|-------------|
+| <a name="output_iam_organizations_features"></a> [iam\_organizations\_features](#output\_iam\_organizations\_features) | Object with attributes of the AWS IAM Organizations features |
+| <a name="output_organizations_delegated_administrator"></a> [organizations\_delegated\_administrator](#output\_organizations\_delegated\_administrator) | Object with attributes of the AWS Organizations delegated administrator |
 
 <!-- END TFDOCS -->
