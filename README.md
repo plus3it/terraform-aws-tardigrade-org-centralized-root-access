@@ -1,52 +1,80 @@
-# repo-template
-Generic repo template for Plus3IT repositories
+# terraform-aws-tardigrade-org-centralized-root-access
 
-To use this template:
+Terraform module to manage centralized root access for an AWS Organization.
 
-1. Select the green "Use this template" button, or [click here](https://github.com/plus3it/repo-template/generate).
-2. Select the repo Owner, give the repo a name, enter a description, select Public or Private, and click "Create repository from template".
-3. Clone the repository and create a new branch.
-4. Configure the following settings on your new repo.
-    * `GENERAL`
-        * `Features`
-            * Turn off Wikis, Sponsorships, Discussions, and Projects
-        * `Pull Requests`
-            * Turn off Squash Merging
-            * Turn off Rebase Merging
-            * Turn on Allow Auto-Merge
-            * Turn on Automatically delete head branches
-        * `Pushes`
-            * Limit how many branches can be updated in a single push: 2
-    * `COLLABORATORS and TEAMS`
-        * `Manage Access`
-            * Add relevant team roles, for example
-            * `tardigrade-admins` (Admin)
-            * `terraform` (Write)
-            * `releasebot` (Write)
-    * `Branches`
-        * `Create Branch Protection rule` for `main`
-            * Turn on Require pull request before merging
-            * Turn on Require approvals
-            * Turn on Dismiss stale pull requests...
-        * `Required Status Checks`
-            * As relevant to projects, for example
-                * WIP
-                * lint/actionlint
-                * lint/tardigradelint
-                * test / mockstacktest                
-            * Turn on Do not allow bypassing the above settings
-5. Edit the following files to customize them for the new repository:
-    * `LICENSE`
-        * Near the end of the file, edit the date and change the repository name
-    * `CHANGELOG.template.md`
-        * Rename to `CHANGELOG.md`, replacing the repo-template changelog
-        * Edit templated items for the new repo
-    * `.bumpversion.cfg`
-        * Edit the version number for the new repo, ask team if not sure what to
-          start with
-    * `README.md`
-        * Replace contents for the new repo
-    * `.github/`
-        * Inspect dependabot and workflow files in case changes are needed for
-          the new repo
-6. Commit the changes and open a pull request
+To configure centralized root access for an AWS Organization, the Organization
+must enable service access for the IAM principal, `iam.amazonaws.com`. Currently,
+the Terraform AWS Provider does not have a resource that *only* enables service
+access for an Organization. Therefore, it is up to the user to coordinate the enablement
+of IAM service access before using this module.
+
+> NOTE: There is the resource `aws_organizations_organization`, which *can* enable
+> service access. However, it expects *exclusive* control over all enabled services
+> and features and other attributes of the resource. It cannot be used to enable
+> *just* a single service, i.e. `iam.amazonaws.com`, while ignoring any other enabled
+> or disabled service. Anything it is not configured to enable, it will disable!
+> It is not appropriate to use this resource in a module like this one that is
+> designed to manage a single Organization feature.
+
+To determine if IAM service access is enabled for the Organization, run this command
+using a credential for the AWS Organization account:
+
+```bash
+aws organizations list-aws-service-access-for-organization --query 'EnabledServicePrincipals[? ServicePrincipal == `iam.amazonaws.com`]'
+```
+
+If enabled, it will return something like:
+
+```bash
+[
+    {
+        "ServicePrincipal": "iam.amazonaws.com",
+        "DateEnabled": "2025-01-10T14:30:07.609000-08:00"
+    }
+]
+```
+
+If not enabled, it will simply return an empty list:
+
+```bash
+[]
+```
+
+To enable IAM service access for the AWS Organization, run this command:
+
+```bash
+aws organizations enable-aws-service-access --service-principal iam.amazonaws.com
+```
+
+<!-- BEGIN TFDOCS -->
+## Requirements
+
+No requirements.
+
+## Providers
+
+| Name | Version |
+|------|---------|
+| <a name="provider_aws"></a> [aws](#provider\_aws) | n/a |
+
+## Resources
+
+| Name | Type |
+|------|------|
+| [aws_caller_identity.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
+| [aws_organizations_organization.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/organizations_organization) | data source |
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_org_centralized_root_access"></a> [org\_centralized\_root\_access](#input\_org\_centralized\_root\_access) | Object containing configuration details to manage centralized root access for the AWS Organization | <pre>object({<br/>    organization_features = optional(object({<br/>      enabled_features = optional(list(string), ["RootCredentialsManagement", "RootSessions"])<br/>    }), {})<br/><br/>    delegated_administrator = optional(object({<br/>      account_id = string<br/>    }))<br/>  })</pre> | `{}` | no |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| <a name="output_iam_organizations_features"></a> [iam\_organizations\_features](#output\_iam\_organizations\_features) | Object with attributes of the AWS IAM Organizations features |
+| <a name="output_organizations_delegated_administrator"></a> [organizations\_delegated\_administrator](#output\_organizations\_delegated\_administrator) | Object with attributes of the AWS Organizations delegated administrator |
+
+<!-- END TFDOCS -->
